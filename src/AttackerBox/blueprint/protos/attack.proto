@@ -1,0 +1,205 @@
+// Command to generate grpc files
+//(From the proto directory) 
+// python3 -m grpc_tools.protoc -I. --python_out=../.. --grpc_python_out=../.. attack.proto
+
+syntax = "proto3";
+
+
+// FindAMachineRequest is a request message that holds one string value subnetMasks.
+//
+// The subnet mask should be in string format representing a Internet Gateway address
+// followed by the Classless Inter-Domain Routing notation. (e.g. ‘192.168.10.0/24’)
+// This is a required field
+message FindAMachineRequest {
+	string subnetMasks = 1;
+}
+
+// MachinesUpResponse is a response message to FindAMachineRequest
+// that returns a repeated string containing the ip addresses of active machines found
+// in a given subnet mask.
+//
+// If there are no active machines found in a given subnet mask then field machines
+// would return empty, which in most languages would be interpreted as an empty list.
+message MachinesUpResponse {
+	repeated string machines = 1;
+}
+
+
+// FingerPrintMachineRequest is a request message that holds two values. The first
+// being a repeated int32 value portsToScan. portsToScan should be formatted as
+// a list of ints in most languages (e.g. [1,2,3,4,5] )
+// The second value is a string representing the IP address of a single active machine.
+// (e.g. ‘192.168.10.1’)
+// These two fields are both required
+message FingerPrintMachineRequest {
+	repeated int32 portsToScan = 1;
+	string activeMachine = 2;
+}
+
+// FingerPrintResponse is a response message to FingerPrintMachineRequest
+// that returns a repeated string containing the open port numbers of an active
+// machine.
+//
+// If there are no open ports found on a active host machine then the field port
+// would return empty, which in most languages would be interpreted as an empty list.
+// (This field could also include more information about the machine such as: operating
+// system and hosts. All of these values could possibly be added into one repeated string
+// along with port.
+message FingerPrintResponse {
+	repeated string port = 1;
+}
+
+// GainAccessRequest is a request message that holds 2 values. The first value
+// machineInformation is a repeated string. machineInformation represents the information
+// obtained from the active machine(targetHost) that will be used in order to attempt to
+// gain access to that host. (e.g. open port numbers [22, 53, 80])
+//
+// The second value targetHost is a string representing the IP address of a single
+// active machine. (e.g. ‘192.168.10.1’)
+// These two fields are both required
+message GainAccessRequest {
+	repeated string machineInformation = 1;
+	string targetHost = 2;
+}
+
+// GainAccessResponse is a response message to GainAccessRequest
+// that potentially can hold 3 values. The first value is a required field gainedAccess
+// which is a Boolean that is made True when the access to a machine is successful
+// and False when unsuccessful. If gainedAccess is False, then user, password, and
+// accessMethod are unused. If gainedAccess if True, then the fields would be populated.
+//
+// User represents a string containing the correct username used to gain access. (e.g. root)
+// Password represents a string containing the correct password used to gain access
+// (e.g. pas$$123)
+// accessMethod represents a string containing the successful access method used to gain
+// access. (e.g. DNS)   
+message GainAccessResponse {
+	bool gainedAccess = 1;
+	string user = 2;
+	string password =3;
+    string accessMethod = 4;
+}
+
+// *** The messages below can only be done after Gained Access has been attained. ***
+ 
+// AddBackdoorRequest is a request message that holds 5 values
+// This request can only be reached after Gained Access was done successfully.
+// backdoorCommand represents a string containing the backdoor command to be
+// ran on the compromised machine. (e.g. ‘sudo iptables –D INPUT 10’)
+// User represents a string containing the correct username used to gain access. (e.g. root)
+// Password represents a string containing the correct password used to gain access
+// (e.g. pas$$123)
+// Host represents a string containing the IP address of the machine (target) that will be used.
+// (e.g. 192.168.10.1)
+// accessMethod represents a string containing the successful access method used to gain
+// access. (e.g. DNS)   
+// All of the fields for AddBackdoorRequest are required
+message AddBackdoorRequest {
+	string backdoorCommand = 1;
+	string user = 2;
+	string password = 3;
+	string host = 4;
+}
+
+
+// AddBackdoorResponse is a response message to AddBackdoorRequest that
+// holds 1 value backdoorCommandResponse which represents a string containing
+// the output from the backdoor command that is ran on the compromised machine.
+// (e.g. Error) or (e.g. Success)
+message AddBackdoorResponse {
+	string backdoorCommandResponse = 1;
+}
+
+// TriggerAttackRequest is a request message that holds 5 values.
+// attackCommand represents a string containing the attack command to be ran on the
+// compromised machine. (e.g. ‘./runthis.exe’)
+// User represents a string containing the correct username used to gain access. (e.g. root)
+// Password represents a string containing the correct password used to gain access
+// (e.g. pas$$123)
+// Host represents a string containing the IP address of the machine (target) that will be used.
+// (e.g. 192.168.10.1)
+// accessMethod represents a string containing the successful access method used to gain
+// access. (e.g. DNS)   
+// All of the fields for TriggerAttackRequest are required
+message TriggerAttackRequest {
+	string attackCommand = 1;
+	string user = 2;
+	string password = 3;
+	string host = 4;
+}
+
+// TriggerAttackResponse is a response message to TriggerAttackRequest that
+// holds 1 value attackResponse which represents a string containing
+// the output from the attack command that is ran on the compromised machine.
+// (e.g. Error) or (e.g. Success)
+message TriggerAttackResponse {
+	string attackResponse = 1;
+}
+
+// ClearTracksRequest is a request that holds 1 field, removeLogs.
+// removeLogs represents a Boolean value that when set to true should
+// remove logs that could potentially reveal what has been done on a
+// compromised machine.
+message ClearTracksRequest {
+	bool removeLogs = 1; 
+}
+
+// ClearTracksResponse is a response message to ClearTracksRequest that
+// holds 1 value removeLogCommandResponse which represents a string containing
+// the output from the removal of event logs in the case that the Boolean removeLogs
+// was True.
+// (e.g. Error) or (e.g. Success)
+// If removeLogs was False, then removeLogCommandResponse would return an
+// empty string.
+message ClearTracksResponse {
+	string removeLogCommandResponse = 1;
+}
+
+// Interface exported by the server
+// a Attack service
+service Attack {
+
+	// FindAMachine obtains the MachinesUpResponse from a given FindAMachineRequest  
+	// a list of active host machines in a given subnet mask
+	//
+	// A subnet mask that has no active machines returns an empty list 
+	rpc FindAMachine (FindAMachineRequest) returns (MachinesUpResponse);
+
+	// FingerPrint obtains a list of ports that are open on a given active host
+	//
+	// A active host that has no found open ports returns an empty list
+	rpc FingerPrint (FingerPrintMachineRequest) returns (FingerPrintResponse);
+
+	// GainAccess obtains the results of attempting to gain access into a target host by using
+	// a given set of machine information about the target and returns a Boolean value gainedAccess
+	// reflecting whether access was gained. If access was gained GainAccess would also
+	// obtain the username, password combination along with the access method used. 
+	//
+	// A unsuccessful attempt to gain access returns a Boolean value gainedAccess 
+	// along with an empty string for username, password, and accessMethod
+	rpc GainAccess (GainAccessRequest) returns (GainAccessResponse);
+
+	// AddBackDoor obtains the response of attempting to install a backdoor command in a
+	// given target machine after using the correct username and password combination to log in via
+	// the found access method. 
+	//
+	// AddBackDoorResponse returns a backdoorCommandResponse string that states the results
+	// of the given command
+	rpc AddBackdoor (AddBackdoorRequest) returns (AddBackdoorResponse);
+
+
+	// TriggerAttack obtains the response of attempting to perform an attack command in a
+	// given target machine after using the correct username and password combination to log in via
+	// the found access method
+	//
+	// TriggerAttackResponse returns a attackResponse string stating the results of the initiated
+	// attack command
+	rpc TriggerAttack (TriggerAttackRequest) returns (TriggerAttackResponse);
+
+	// ClearTracks obtains the response of a ClearTracksRequest Boolean value removeLogs
+	// that determines whether to remove logs.
+	//
+	// ClearTracksResponse returns back a populated removeLogCommandResponse string if the
+	// removeLogs Boolean value passed in is set to true
+	rpc ClearTracks (ClearTracksRequest) returns (ClearTracksResponse);
+}

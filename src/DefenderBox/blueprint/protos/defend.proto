@@ -1,0 +1,180 @@
+// Command to generate grpc files
+//(From the proto directory)  
+//python3 -m grpc_tools.protoc -I. --python_out=../.. --grpc_python_out=../.. defend.proto
+
+syntax = "proto3";
+
+// CheckConfigFileStatusRequest is a request message that holds one string
+// value pathToConfigFile
+//
+// The configuration file path field should be in string format representing the location of
+// the file to monitor for changes (e.g. ‘/var/log/auth.log’)
+// This is a required field
+message CheckConfigFileStatusRequest {
+	string pathToConfigFile = 1;
+}
+
+// CheckConfigFileStatusResponse is a response message to CheckConfigFileStatusRequest
+// that returns a string value ipAttacking containing the IP address of the attacker 
+// attacking the system.
+//
+// This field would pause here until there was a attempted attack so the value ipAttacking
+// should never return an empty string. But in the edge case that it does it would return a
+// empty string (e.g. “” )
+message CheckConfigFileStatusResponse {
+	string ipAttacking = 1;
+}
+
+// UpdateNetworkConfigurationRequest is a request message that holds five fields.
+//
+// Ip represents an incoming string value of an Ip to be updated. (e.g. ‘192.168.10.1’)
+// Port represents a repeated string of ports that need to be either opened or 
+// closed. (e.g. [‘53,’ ‘80’]. Port depends on the value of the third field, closePort.
+// closePort is a Boolean value that when set to True, means that the ports in field two
+// are to be closed and when set to False, the ports represented in field two are to be opened.
+// turnOnFirewall is a Boolean that went is set to True, means that the firewall is off or
+// disabled and when set to False, means the firewall is active.
+// turnOnFirewallLogging represents a Boolean value and when set to true, means that
+// the logging for firewall is off and when set to True, the logging is on.
+//
+// The only requirement for this message is that when port and closePort must be used together.
+// The remaining fields can be used together or stand alone.
+message UpdateNetworkConfigurationRequest {
+	string ip = 1;
+	repeated string port = 2;
+	bool closePort = 3;
+	bool turnOnFirewall = 4;
+	bool turnOnFirewallLogging = 5;
+
+}
+
+// UpdateNetworkConfigurationResponse is a response message to
+// UpdateNetworkConfigurationRequest that can hold up to four values.
+//
+// blockIpResponse represents a string containing the output response to updating the Ip
+// initiated by the corresponding request. (e.g. ‘Successful’)
+// closePortResponse represents a string value containing the output response to updating
+// the ports initiated by the corresponding request. (e.g. ‘Closed’)
+// updateFireWallResponse represents a string value containing the output response
+// to updating the firewall if necessary. (e.g. ‘Successful)
+// updateFireWallLoggingResponse represents a string containing the output response to
+// updating the firewall logging if necessary. (e.g. ‘Successful’)
+//
+// All four fields are not required and are only populated if they are set to update in the
+// corresponding request. By default, if not set will return as an empty string (e.g. “”)
+message UpdateNetworkConfigurationResponse {
+	string blockIpResponse = 1;
+	string closePortResponse = 2;
+	string updateFireWallResponse = 3;
+	string updateFireWallLoggingResponse = 4;
+}
+
+// FindSystemVulnerabilitiesRequest is a request message that holds four fields. This message
+// is the first step in the process to determine what necessary checks to make first.
+//
+// checkForOpenPorts represents an Boolean value and when set to true, instructs to check
+// for open, vulnerable ports on the system. When set to False, instructs to ignore this check.
+// checkFirewall is a Boolean that when is set to True, instructs to check the status of the firewall.
+// When set to False, instructs to ignore this check.
+// checkFireWallLogging represents a Boolean value and when set to true, instructs to check
+// the status of the firewall logging on the system. When set to False, instructs to ignore this
+// check.
+// checkToolRunning represents a Boolean value and when set to true, instructs to check
+// the status of whatever tool may be running (e.g. Snort, Ossec, etc.)
+//
+// The four of these fields are not required because by default, are set to False.
+message FindSystemVulnerabilitiesRequest {
+	bool checkForOpenPorts = 1; 
+	bool checkFireWall = 2; 
+	bool checkFireWallLogging = 3;
+	bool checkToolRunning = 4;
+}
+
+// FindSystemVulnerabilitiesResponse is a response message to FindSystemVulnerabilitiesRequest
+// and potentially holds four fields.
+// fireWallOff represents an Boolean value and returns True or False depending on the results
+// from the firewall check.
+// fireWallLoggingOff is a Boolean value and returns True or False depending on the results
+// from the firewall logging check.
+// openPorts represents a repeated string value that returns a set of vulnerable, open
+// ports. (e.g. [53,80,8080])
+// toolRunning represents a Boolean value and returns True or False depending on the
+// results from the tool running check.
+// the status of whatever tool may be running (e.g. Snort, Ossec, etc.)
+//
+// These values are optional and are only set when the corresponding request message
+// initiates a check for the given field. By default, the Boolean fields are set to False
+// and the repeated string field is set to an empty list in most standard languages.
+message FindSystemVulnerabilitiesResponse {
+	bool fireWallOff = 1;
+	bool fireWallLoggingOff = 2;
+	repeated string openPorts = 3;
+	bool toolRunning = 4;
+}
+
+// FindAttackerPresenceRequest is a request message that holds three fields. This
+// request is only reached after the system has been breached.
+//
+// malwareScan represents an Boolean value and when set to true, instructs to check
+// for malware or backdoor activity that the attacker has inserted into the system. When
+// set to False, instructs to ignore this check.
+// scanNetworkActivity is a Boolean that and when set to True, instructs to run a scan to
+// monitor network activity that the system is experiencing. When set to False,
+// instructs to ignore this check.
+// checkLogs represents a Boolean value and when set to true, instructs to search
+// through logs on the system. When set to False, instructs to ignore this check.
+//
+// The three of these fields are not required because by default, are set to False.
+// (For future this message should be an initial check to highlight the attacker’s
+// presence in the file and there should be a separate message to actually perform
+// an action on it.
+message FindAttackerPresenceRequest {
+	bool malwareScan = 1;
+	bool scanNetworkActivity = 2;
+	bool checkLogs = 3;
+}
+
+// FindAttackerPresenceResponse is a response message to FindAttackerPresenceRequest
+// and potentially holds three fields.
+// malwareScanResponse represents a string value containing the output response to
+// the running of the malware/backdoor scan. (e.g. ‘Clean’)
+// networkActivityScanResponse represents a string value containing the output response
+// of running the network activity scan. (e.g. ‘*network details*’)
+// logResponse represents a string value and the output response to searching through the
+// logs if the check is enabled. (e.g. ‘Clean’)
+//
+// The three of these fields are populated if the corresponding request message enables
+// the check for the specific field
+message FindAttackerPresenceResponse {
+	string malwareScanResponse = 1;
+	string networkActivityScanResponse = 2; 
+	string logResponse = 3;
+
+}
+
+// Interface exported by the server
+// a Defend service
+service Defend {
+
+	// MonitorConfigurationFile obtains the CheckConfigFileStatusResponse from a given
+	// CheckConfigFileStatusRequest. Monitors a specified configuration file until it notices a
+	// change and reports it.
+    rpc MonitorConfigurationFile (CheckConfigFileStatusRequest) returns (CheckConfigFileStatusResponse);
+    
+	// UpdateNetworkConfiguration obtains a UpdateNetworkConfigurationResponse
+	// from a given UpdateNetworkConfigurationRequest. Updates the network configuration
+	// settings based on the parameters it receives.   
+    rpc UpdateNetworkConfiguration (UpdateNetworkConfigurationRequest) returns (UpdateNetworkConfigurationResponse);
+    
+    // IdentifySystemVulnerabilities obtains a FindSystemVulnerabilitiesResponse
+	// from a given FindSystemVulnerabilitiesRequest. Initiated first in the process to
+	// run a check to search for system vulnerabilities that could be attacked.  
+    rpc IdentifySystemVulnerabilities (FindSystemVulnerabilitiesRequest) returns (FindSystemVulnerabilitiesResponse);
+    
+	// FindAttackerPresence obtains a FindAttackerPresenceResponse from a given
+	// FindAttackerPresenceResponse. FindAttackerPresence is reached once a system
+	// has been compromised and the intent now is to find what has been done.
+	// (A follow up RPC could be made to supplement this RPC to perform the action
+	// because this is RPC is only to investigate.)
+    rpc FindAttackerPresence (FindAttackerPresenceRequest) returns (FindAttackerPresenceResponse);
+}
